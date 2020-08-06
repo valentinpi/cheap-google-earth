@@ -7,17 +7,21 @@
 #include <string>
 #include <thread>
 
-#include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+
+#include "Shader.hpp"
 
 GLFWwindow *window = nullptr;
 const int window_width = 750, window_height = 750;
 
-/* CALLBACK */
-void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+    (void) window;
 
-bool load_shader(const char *file_path, GLenum type, GLuint *id);
+    glViewport(0, 0, width, height);
+}
 
 int main(int argc, char *argv[])
 {
@@ -63,17 +67,17 @@ int main(int argc, char *argv[])
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    GLuint vertex_shader = 0, fragment_shader = 0;
-    bool vertex_shader_load_successful   = load_shader("../src/vertex_shader.vert",   GL_VERTEX_SHADER,   &vertex_shader);
-    bool fragment_shader_load_successful = load_shader("../src/fragment_shader.frag", GL_FRAGMENT_SHADER, &fragment_shader);
-
-    if (!vertex_shader_load_successful || !fragment_shader_load_successful) {
-        return 1;
+    Shader vertex_shader, fragment_shader;
+    if (vertex_shader.load_shader(GL_VERTEX_SHADER, "shaders/vertex_shader.vert")) {
+        return EXIT_FAILURE;
+    }
+    if (fragment_shader.load_shader(GL_FRAGMENT_SHADER, "shaders/fragment_shader.frag")) {
+        return EXIT_FAILURE;
     }
 
     GLuint program = glCreateProgram();
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
+    glAttachShader(program, vertex_shader.get_id());
+    glAttachShader(program, fragment_shader.get_id());
     glLinkProgram(program);
 
     GLint success = 0;
@@ -87,9 +91,6 @@ int main(int argc, char *argv[])
     }
 
     glUseProgram(program);
-
-    glDeleteShader(fragment_shader);
-    glDeleteShader(vertex_shader);
 
     GLuint vao = 0;
     glGenVertexArrays(1, &vao);
@@ -132,49 +133,4 @@ int main(int argc, char *argv[])
     glfwTerminate();
 
     return 0;
-}
-
-void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
-    (void) window;
-
-    glViewport(0, 0, width, height);
-}
-
-bool load_shader(const char *file_path, GLenum type, GLuint *id)
-{
-    std::ifstream file(file_path);
-
-    if (!file) {
-        std::cout << "Could not open " << file_path << "!" << std::endl;
-        return false;
-    }
-
-    file.seekg(0, std::ios_base::end);
-    uint64_t file_size = file.tellg();
-    file.seekg(0, std::ios_base::beg);
-
-    char shader_src[file_size + 1];
-    std::memset(shader_src, 0, file_size);
-    file.read(shader_src, file_size);
-
-    file.close();
-    
-    GLuint shader = glCreateShader(type);
-    const char *shader_src_ptr = shader_src;
-    glShaderSource(shader, 1, &shader_src_ptr, nullptr);
-    glCompileShader(shader);
-
-    GLint success = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if(!success) {
-        char log[513];
-        std::memset(log, 0, 513);
-        glGetShaderInfoLog(shader, 512, nullptr, log);
-        std::cout << "Compilation of " << file_path << " failed!\n" << log << std::endl;
-        return false;
-    }
-
-    *id = shader;
-    return true;
 }
