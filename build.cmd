@@ -2,7 +2,7 @@
 
 @REM CMAKE
 cd src
-cmake -B ../bin -G "MinGW Makefiles"
+cmake -B ../bin -G "MinGW Makefiles" -S ../src
 
 @REM COPY SHADERS AND OTHER CONTENTS
 cd ..
