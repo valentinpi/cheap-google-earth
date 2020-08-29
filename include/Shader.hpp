@@ -16,7 +16,7 @@ private:
 public:
     Shader() = default;
     ~Shader();
-    
+
     inline GLuint get_id() {
         return id;
     }
