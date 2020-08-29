@@ -9,12 +9,26 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.hpp"
 
+static const double PI = 3.14159265358979323846264338327950288;
+
 GLFWwindow *window = nullptr;
 const int window_width = 750, window_height = 750;
+
+// TEST: Render triangle
+// This data, after being processed by the vertex shader, will be in NDC (normalized device coordinates)
+// Right now, we will use NDC at start
+double vertices[] = {
+    -0.5, -0.5, 0.0,  0.0,  0.0,  1.0,
+     0.0,  0.5, 0.0,  1.0,  0.0,  0.0,
+     0.5, -0.5, 0.0,  0.0,  1.0,  0.0,
+};
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
@@ -32,7 +46,8 @@ int main(int argc, char *argv[])
         const char *error = nullptr;
         glfwGetError(&error);
         std::cout << "GLFW initialization failed!\n" << error << std::endl;
-        return 1;
+
+        return EXIT_FAILURE;
     }
 
     window = glfwCreateWindow(
@@ -47,20 +62,10 @@ int main(int argc, char *argv[])
 
     if (!gladLoadGL()) {
         std::cout << "glad initialization failed!" << std::endl;
-
         glfwDestroyWindow(window);
-        
-        return 1;
-    }
 
-    // TEST: Render triangle
-    // This data, after being processed by the vertex shader, will be in NDC (normalized device coordinates)
-    // Right now, we will use NDC at start
-    double vertices[] = {
-        -0.5, -0.5, 0.0,  0.0,  0.0,  1.0,
-         0.0,  0.5, 0.0,  1.0,  0.0,  0.0,
-         0.5, -0.5, 0.0,  0.0,  1.0,  0.0,
-    };
+        return EXIT_FAILURE;
+    }
 
     GLuint vbo = 0;
     glGenBuffers(1, &vbo);
@@ -87,7 +92,8 @@ int main(int argc, char *argv[])
         std::memset(log, 0, 513);
         glGetProgramInfoLog(program, 512, NULL, log);
         std::cout << "Program linking failed!\n" << log << std::endl;
-        return 1;
+
+        return EXIT_FAILURE;
     }
 
     glUseProgram(program);
@@ -107,6 +113,8 @@ int main(int argc, char *argv[])
     // Disable wireframe mode
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    glm::mat4 transform = glm::mat4(1.0);
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     bool running = true;
     while (running) {
@@ -121,6 +129,11 @@ int main(int argc, char *argv[])
         //glfwGetCursorPos(window, &mouse_x, &mouse_y);
         //std::cout << "(" << mouse_x << ", " << mouse_y << ")" << std::endl;
 
+        //transform = glm::translate(transform, glm::vec3(1.0, 0.0, 0.0));
+        transform = glm::rotate(transform, glm::radians(5.0f), glm::vec3(0.0, 0.0, 1.0));
+        GLint transformUniform = glGetUniformLocation(program, "transform");
+        glUniformMatrix4fv(transformUniform, 1, false, glm::value_ptr(transform));
+
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         glfwSwapBuffers(window);
@@ -132,5 +145,5 @@ int main(int argc, char *argv[])
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    return 0;
+    return EXIT_SUCCESS;
 }
