@@ -6,7 +6,7 @@ cmake -B ../bin -G "MinGW Makefiles" -S ../src
 
 @REM COPY SHADERS AND OTHER CONTENTS
 cd ..
-xcopy src\shaders bin\shaders\ /Y
+xcopy shaders bin\shaders\ /Y
 
 @REM COMPILE
 cd bin

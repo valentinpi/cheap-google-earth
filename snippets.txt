@@ -1,0 +1,14 @@
+--
+double mouse_x = 0, mouse_y = 0;
+glfwGetCursorPos(window, &mouse_x, &mouse_y);
+std::cout << "(" << mouse_x << ", " << mouse_y << ")" << std::endl;
+--
+transform = glm::translate(transform, glm::vec3(1.0, 0.0, 0.0));
+--
+// Wireframe mode
+glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+// Disable wireframe mode
+glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+--
+static const double PI = 3.14159265358979323846264338327950288;
+--
