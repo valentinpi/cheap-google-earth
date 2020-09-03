@@ -28,29 +28,37 @@ private:
     uint64_t stack_count;
     uint64_t sector_count;
     std::vector<float> vertices;
-    // NOTE: You can get the number of triangles
-    // to draw by dividing this size() by 3
-    std::vector<GLuint> indices;
     // Not really part of this class in concept
     // But maybe it is since it is independent
     // of the actual texture used (assuming 2D)
     std::vector<float> texcoords;
+    // NOTE: You can get the number of triangles
+    // to draw by dividing this size() by 3
+    std::vector<GLuint> indices;
 
     /* OPENGL */
     // Assume the following:
     // An OpenGL context is set up
     // A shader program is loaded
+    // A VAO is set up
     // A texture is applied
     // Only load the VAO, VBOs and EBO and call the glDrawElements function
-    GLuint vao;
-    GLuint vbo[2];
+    GLuint vbo[2] = { 0, 0 };
     GLuint ebo;
 
     void generate();
     void generate_gl();
 public:
     Sphere(glm::vec3 center, float radius, uint64_t stack_count, uint64_t sector_count);
-    ~Sphere() = default;
+    ~Sphere();
+
+    inline GLuint get_vertex_vbo() const {
+        return vbo[0];
+    }
+
+    inline GLuint get_texcoord_vbo() const {
+        return vbo[1];
+    }
 
     const std::vector<float> &get_vertices() const {
         return vertices;

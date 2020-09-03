@@ -10,6 +10,12 @@ Sphere::Sphere(glm::vec3 center, float radius, uint64_t stack_count, uint64_t se
     generate_gl();
 }
 
+Sphere::~Sphere()
+{
+    glDeleteBuffers(1, &ebo);
+    glDeleteBuffers(2, vbo);
+}
+
 void Sphere::generate()
 {
     if (stack_count < SPHERE_MINIMUM_STACK_COUNT || sector_count < SPHERE_MINIMUM_SECTOR_COUNT) {
@@ -50,11 +56,6 @@ void Sphere::generate()
             
             glm::vec3 vertex = center + glm::vec3(x, y, z);
             vertices.insert(vertices.end(), { vertex.x, vertex.y, vertex.z });
-            
-            // The vector we just added
-            GLuint index = vertices.size() / 3 - 1;
-            indices.insert(indices.end(), { top_index, prev_index, index });
-            prev_index = index;
 
             // TODO: Possible problem when rendering texture: No end
             // vertex with the texcoords 1.0, x
@@ -64,6 +65,11 @@ void Sphere::generate()
                 (float) sector_step / (float) sector_count,
                 1.0f / (float) stack_count
             });
+            
+            // The vector we just added
+            GLuint index = vertices.size() / 3 - 1;
+            indices.insert(indices.end(), { top_index, prev_index, index });
+            prev_index = index;
         }
     }
     
@@ -96,6 +102,11 @@ void Sphere::generate()
 
             glm::vec3 vertex = center + glm::vec3(x, y, z);
             vertices.insert(vertices.end(), { vertex.x, vertex.y, vertex.z });
+            
+            texcoords.insert(texcoords.end(), {
+                (float) sector_step / (float) sector_count,
+                (float) stack_step / (float) stack_count
+            });
 
             // Per vertex add two triangles
             // One left "above"
@@ -116,11 +127,6 @@ void Sphere::generate()
             if (next_top_index == initial_bottom_index) {
                 next_top_index = initial_bottom_index - (GLuint) sector_count;
             }
-            
-            texcoords.insert(texcoords.end(), {
-                (float) sector_step / (float) sector_count,
-                (float) stack_step / (float) stack_count
-            });
         }
     }
 
@@ -172,21 +178,28 @@ void Sphere::generate_gl() {
     const float *texcoords_ptr = texcoords.data();
     GLsizeiptr texcoords_size = texcoords.size() * sizeof(float);
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
     glGenBuffers(2, vbo);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, vertices_size, vertices_ptr, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glBufferData(GL_ARRAY_BUFFER, indices_size, indices_ptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, texcoords_size, texcoords_ptr, GL_STATIC_DRAW);
 
-    
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices_ptr, GL_STATIC_DRAW);
 }
 
-void Sphere::log_coords() const {
+void Sphere::draw() const
+{
+    GLsizeiptr indices_size = indices.size() * sizeof(GLuint);
+    
+    glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, nullptr);
+}
+
+void Sphere::log_coords() const
+{
     std::cout << "vertices" << std::endl;
     for (size_t i = 0; i < vertices.size(); i += 3) {
         std::cout << "("
