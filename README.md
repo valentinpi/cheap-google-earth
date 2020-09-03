@@ -4,3 +4,6 @@
 
 Control the rotation of the model using the 1 (X axis), 2 (Y axis) and 3 (Z axis) keys (non numpad).
 
+## Screenshot
+
+![IMG not available](screenshot.png)

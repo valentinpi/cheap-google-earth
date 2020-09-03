@@ -2,7 +2,7 @@
 
 #define DEBUG 0
 
-static const std::string EARTH_TEXTURE_SRC = "img/earth_960.jpg";
+static const std::string EARTH_TEXTURE_SRC = "img/earth_4096.jpg";
 static const std::string SPACE_TEXTURE_SRC = "img/space.jpg";
 
 static const float FOV = 90.0f;
