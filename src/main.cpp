@@ -31,27 +31,25 @@ enum axis {
     Z
 };
 
-static const float FOV = 90.0f;
-static const float ROTATION_SPEED = 5.0f;
-// The LOWER the FASTER
-static const float SCROLL_SPEED = 5.0f;
-static const float SPHERE_RADIUS = 1.0f;
-static const std::string EARTH_TEXTURE_SRC = "img/earth_960.jpg";
-
 GLFWwindow *window = nullptr;
 const int window_width = 800, window_height = 800;
-axis rotation_mode = X;
+
 bool mouse_pressed = false;
+
 double xpos_prev = 0, ypos_prev = 0;
 double dx = 0, dy = 0;
 
+// Position of camera on X axis
 float pos_x = 2.0f;
 float scroll = 0.0f;
 
-GLuint vbo[2] = { 0, 0 };
-GLuint ebo = 0;
+axis rotation_mode = Z;
+
+// For first draw
+bool redraw = true;
+
+GLuint vao[2] = { 0, 0 };
 GLuint program = 0;
-GLuint vao = 0;
 
 /* CALLBACKS */
 
@@ -154,35 +152,13 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    // Create sphere for vertex coordinates, indices and texcoords
-    Sphere sphere(glm::vec3(0.0f), SPHERE_RADIUS, 20, 20);
+    glGenVertexArrays(2, vao);
 
-    const float *vertices = sphere.get_vertices().data();
-    GLsizeiptr vertices_size = sphere.get_vertices().size() * sizeof(float);
+    glBindVertexArray(vao[0]);
+    Sphere earth(glm::vec3(0.0f), EARTH_RADIUS, 20, 20);
 
-    const GLuint *indices = sphere.get_indices().data();
-    GLsizeiptr indices_size = sphere.get_indices().size() * sizeof(GLuint);
-    
-    const float *texcoords = sphere.get_texcoords().data();
-    GLsizeiptr texcoords_size = sphere.get_texcoords().size() * sizeof(float);
-
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    glGenBuffers(2, vbo);
-
-    // Vertex data
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, vertices_size, vertices, GL_STATIC_DRAW);
-
-    // Texcoords
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glBufferData(GL_ARRAY_BUFFER, texcoords_size, texcoords, GL_STATIC_DRAW);
-
-    // Index data
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices, GL_STATIC_DRAW);
+    glBindVertexArray(vao[1]);
+    Sphere space(glm::vec3(0.0f), SPACE_RADIUS, 20, 20);
 
     // Load and compile shaders and shader program
     Shader vertex_shader(GL_VERTEX_SHADER), fragment_shader(GL_FRAGMENT_SHADER);
@@ -217,14 +193,30 @@ int main()
 
     glUseProgram(program);
 
-    // Now that we can get the attribute locations, set the data link to the arrays given
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     GLint pos_attr = glGetAttribLocation(program, "pos_attr");
+    GLint tex_attr = glGetAttribLocation(program, "tex_attr");
+
+    glBindVertexArray(vao[0]);
+
+    // Now that we can get the attribute locations, set the data link to the arrays given
+    glBindBuffer(GL_ARRAY_BUFFER, earth.get_vertex_vbo());
     glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(pos_attr);
     
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    GLint tex_attr = glGetAttribLocation(program, "tex_attr");
+    glBindBuffer(GL_ARRAY_BUFFER, earth.get_texcoord_vbo());
+    // NOTE: Fails for some reason (probably optimization by the GPU driver),
+    // if texcoords are not used in shaders
+    glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(tex_attr);
+
+    glBindVertexArray(vao[1]);
+
+    // Now that we can get the attribute locations, set the data link to the arrays given
+    glBindBuffer(GL_ARRAY_BUFFER, space.get_vertex_vbo());
+    glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(pos_attr);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, space.get_texcoord_vbo());
     // NOTE: Fails for some reason (probably optimization by the GPU driver),
     // if texcoords are not used in shaders
     glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
@@ -235,8 +227,13 @@ int main()
     GLint view = glGetUniformLocation(program, "view");
     GLint proj = glGetUniformLocation(program, "proj");
     
-    // Because of the texture, rotate the sphere around one time
-    glm::mat4 model_transform = glm::rotate(
+    // Because of the texture, rotate the earth around one time
+    glm::mat4 model_earth_transform = glm::rotate(
+        glm::mat4(1.0f),
+        glm::radians(180.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    );
+    glm::mat4 model_space_transform = glm::rotate(
         glm::mat4(1.0f),
         glm::radians(180.0f),
         glm::vec3(0.0f, 0.0f, 1.0f)
@@ -253,13 +250,16 @@ int main()
         1000.0f
     );
 
-    glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(model_transform));
     glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(view_transform));
     glUniformMatrix4fv(proj, 1, GL_FALSE, glm::value_ptr(proj_transform));
 
-    // Load texture
     Texture earth_texture;
     if (earth_texture.load_texture(EARTH_TEXTURE_SRC) != LOAD_TEXTURE_SUCCESS) {
+        return EXIT_FAILURE;
+    }
+    
+    Texture space_texture;
+    if (space_texture.load_texture(SPACE_TEXTURE_SRC) != LOAD_TEXTURE_SUCCESS) {
         return EXIT_FAILURE;
     }
 
@@ -288,14 +288,13 @@ int main()
                 case Z:
                     rot.z = dir;
             }
-            model_transform = glm::rotate(model_transform, glm::radians(ROTATION_SPEED), glm::normalize(rot));
+            model_earth_transform = glm::rotate(model_earth_transform, glm::radians(ROTATION_SPEED), glm::normalize(rot));
             dx = 0;
             dy = 0;
-
-            glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(model_transform));
+            redraw = true;
         }
 
-        if (scroll != 0.0f && pos_x + scroll > SPHERE_RADIUS) {
+        if (scroll != 0.0f && pos_x + scroll > EARTH_RADIUS && pos_x + scroll < SPACE_RADIUS) {
             pos_x += scroll;
 
             view_transform = glm::lookAt(
@@ -305,16 +304,30 @@ int main()
             );
 
             glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(view_transform));
+            redraw = true;
         }
         scroll = 0.0f;
 
-        glClearColor(CLEAR_COLOR);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_DEPTH_BUFFER_BIT);
+        if (redraw) {
+            glClearColor(CLEAR_COLOR);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            glClear(GL_DEPTH_BUFFER_BIT);
 
-        glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, nullptr);
-        glfwSwapBuffers(window);
+            glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(model_earth_transform));
+            earth_texture.use();
+            glBindVertexArray(vao[0]);
+            earth.draw();
+
+            glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(model_space_transform));
+            space_texture.use();
+            glBindVertexArray(vao[1]);
+            space.draw();
+
+            glfwSwapBuffers(window);
+
+            redraw = false;
+        }
 
         auto end = high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -322,9 +335,7 @@ int main()
         begin = high_resolution_clock::now();
     }
 
-    glDeleteBuffers(1, &ebo);
-    glDeleteBuffers(2, vbo);
-    glDeleteVertexArrays(1, &vao);
+    glDeleteVertexArrays(2, vao);
 
     glfwDestroyWindow(window);
     glfwTerminate();
