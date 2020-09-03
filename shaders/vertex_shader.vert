@@ -1,9 +1,9 @@
 #version 460 core
 
-layout (location = 0) in vec3 pos_attr;
-layout (location = 1) in vec3 col_attr;
+in vec3 pos_attr;
+in vec2 tex_attr;
 
-out vec3 immediate_color;
+out vec2 immediate_texcoord;
 
 uniform mat4 model = mat4(1.0);
 uniform mat4 view = mat4(1.0);
@@ -12,5 +12,5 @@ uniform mat4 proj = mat4(1.0);
 void main()
 {
     gl_Position = proj * view * model * vec4(pos_attr, 1.0);
-    immediate_color = col_attr;
+    immediate_texcoord = tex_attr;
 }
