@@ -3,13 +3,17 @@
 Sphere::Sphere(glm::vec3 center, float radius, uint64_t stack_count, uint64_t sector_count)
     : center(center), radius(radius), stack_count(stack_count), sector_count(sector_count)
 {
+#if DEBUG
     std::cout << this->radius << std::endl;
+#endif
     generate();
+    generate_gl();
 }
 
 void Sphere::generate()
 {
     if (stack_count < SPHERE_MINIMUM_STACK_COUNT || sector_count < SPHERE_MINIMUM_SECTOR_COUNT) {
+        initialized = false;
         return;
     }
 
@@ -149,6 +153,37 @@ void Sphere::generate()
     std::cout << "===== After initializing bottom vertex =====" << std::endl;
     log_coords();
 #endif
+
+    initialized = true;
+}
+
+void Sphere::generate_gl() {
+    if (!initialized) {
+        return;
+    }
+    
+    // Data pointers
+    const float *vertices_ptr = vertices.data();
+    GLsizeiptr vertices_size = vertices.size() * sizeof(float);
+
+    const GLuint *indices_ptr = indices.data();
+    GLsizeiptr indices_size = indices.size() * sizeof(GLuint);
+    
+    const float *texcoords_ptr = texcoords.data();
+    GLsizeiptr texcoords_size = texcoords.size() * sizeof(float);
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(2, vbo);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glBufferData(GL_ARRAY_BUFFER, vertices_size, vertices_ptr, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glBufferData(GL_ARRAY_BUFFER, indices_size, indices_ptr, GL_STATIC_DRAW);
+
+    
 }
 
 void Sphere::log_coords() const {

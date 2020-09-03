@@ -8,12 +8,9 @@
 #include <thread>
 
 #include <glad/glad.h>
-// NOTE: Contains static initializers that, when
-// GLFW is not used in code or 
+// NOTE: Contains static initializers that, when GLFW is
+// not used in code, causes a segmentation fault on exit
 #include <GLFW/glfw3.h>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,40 +19,41 @@
 #include "Constants.hpp"
 #include "Shader.hpp"
 #include "Sphere.hpp"
+#include "Texture.hpp"
 
 using std::chrono::high_resolution_clock;
 
 #define CLEAR_COLOR 0.0f, 0.0f, 0.0f, 0.0f
+
+enum axis {
+    X,
+    Y,
+    Z
+};
 
 static const float FOV = 90.0f;
 static const float ROTATION_SPEED = 5.0f;
 // The LOWER the FASTER
 static const float SCROLL_SPEED = 5.0f;
 static const float SPHERE_RADIUS = 1.0f;
-static const std::string EARTH_TEXTURE_SRC = "img/earth_480.jpg";
+static const std::string EARTH_TEXTURE_SRC = "img/earth_960.jpg";
 
 GLFWwindow *window = nullptr;
-const int window_width = 750, window_height = 750;
-
+const int window_width = 800, window_height = 800;
+axis rotation_mode = X;
 bool mouse_pressed = false;
 double xpos_prev = 0, ypos_prev = 0;
 double dx = 0, dy = 0;
+
 float pos_x = 2.0f;
 float scroll = 0.0f;
 
 GLuint vbo[2] = { 0, 0 };
 GLuint ebo = 0;
-GLuint texture = 0;
-Shader vertex_shader, fragment_shader;
 GLuint program = 0;
 GLuint vao = 0;
 
-static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
-    (void) window;
-
-    glViewport(0, 0, width, height);
-}
+/* CALLBACKS */
 
 static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos)
 {
@@ -65,6 +63,36 @@ static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos)
     dy = ypos - ypos_prev;
     xpos_prev = xpos;
     ypos_prev = ypos;
+}
+
+static void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+    (void) window;
+
+    glViewport(0, 0, width, height);
+}
+
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    (void) window;
+    (void) scancode;
+    (void) mods;
+
+    // The US keyboard layout is used for the symbolic constants
+    // https://www.glfw.org/docs/latest/group__keys.html
+    // Therefore use the keys 1, 2, 3 for a little portability
+    // since Y and Z are switched on German keyboards for instance
+    if (action == GLFW_PRESS) {
+        switch (key) {
+            case GLFW_KEY_1:
+                rotation_mode = X;
+                break;
+            case GLFW_KEY_2:
+                rotation_mode = Y;
+                break;
+            case GLFW_KEY_3:
+                rotation_mode = Z;
+        }
+    }
 }
 
 static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
@@ -83,6 +111,8 @@ static void scroll_callback(GLFWwindow *window, double xOffset, double yOffset) 
 
     scroll += yOffset / SCROLL_SPEED;
 }
+
+/* MAIN */
 
 int main()
 {
@@ -109,8 +139,9 @@ int main()
     }
     glfwSetWindowSizeLimits(window, 200, 200, 2000, 2000);
 
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, cursor_pos_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetScrollCallback(window, scroll_callback);
     
@@ -124,7 +155,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     // Create sphere for vertex coordinates, indices and texcoords
-    Sphere sphere(glm::vec3(0.0f), SPHERE_RADIUS, 10, 10);
+    Sphere sphere(glm::vec3(0.0f), SPHERE_RADIUS, 20, 20);
 
     const float *vertices = sphere.get_vertices().data();
     GLsizeiptr vertices_size = sphere.get_vertices().size() * sizeof(float);
@@ -153,36 +184,12 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices, GL_STATIC_DRAW);
 
-    // Texture
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    {
-        int width = 0, height = 0;
-        stbi_uc *earth_image = stbi_load(EARTH_TEXTURE_SRC.c_str(), &width, &height, 0, STBI_rgb);
-        if (earth_image == NULL) {
-            std::cerr << "Could not load " << EARTH_TEXTURE_SRC << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, earth_image);
-        stbi_image_free(earth_image);
-    }
-
-    // Wrapping
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // Filtering
-    // TODO: Maybe use a midmap (load texture in advance)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
     // Load and compile shaders and shader program
-    if (vertex_shader.load_shader(GL_VERTEX_SHADER, "shaders/vertex_shader.vert") != 0) {
+    Shader vertex_shader(GL_VERTEX_SHADER), fragment_shader(GL_FRAGMENT_SHADER);
+    if (vertex_shader.load_shader("shaders/vertex_shader.vert") != LOAD_SHADER_SUCCESS) {
         return EXIT_FAILURE;
     }
-    if (fragment_shader.load_shader(GL_FRAGMENT_SHADER, "shaders/fragment_shader.frag") != 0) {
+    if (fragment_shader.load_shader("shaders/fragment_shader.frag") != LOAD_SHADER_SUCCESS) {
         return EXIT_FAILURE;
     }
 
@@ -223,11 +230,17 @@ int main()
     glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
     glEnableVertexAttribArray(tex_attr);
 
+    // Projections
     GLint model = glGetUniformLocation(program, "model");
     GLint view = glGetUniformLocation(program, "view");
     GLint proj = glGetUniformLocation(program, "proj");
     
-    glm::mat4 model_transform = glm::mat4(1.0f);
+    // Because of the texture, rotate the sphere around one time
+    glm::mat4 model_transform = glm::rotate(
+        glm::mat4(1.0f),
+        glm::radians(180.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    );
     glm::mat4 view_transform = glm::lookAt(
         glm::vec3(pos_x, 0.0f, 0.0f),
         glm::vec3(0.0f, 0.0f, 0.0f),
@@ -240,8 +253,15 @@ int main()
         1000.0f
     );
 
+    glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(model_transform));
     glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(view_transform));
     glUniformMatrix4fv(proj, 1, GL_FALSE, glm::value_ptr(proj_transform));
+
+    // Load texture
+    Texture earth_texture;
+    if (earth_texture.load_texture(EARTH_TEXTURE_SRC) != LOAD_TEXTURE_SUCCESS) {
+        return EXIT_FAILURE;
+    }
 
     glfwGetCursorPos(window, &xpos_prev, &ypos_prev);
     auto begin = high_resolution_clock::now();
@@ -249,7 +269,25 @@ int main()
         glfwPollEvents();
 
         if (mouse_pressed && (dx != 0 || dy != 0)) {
-            glm::vec3 rot(0.0f, dy, dx);
+            float dir = 0.0f;
+            if (std::abs(dx) > std::abs(dy)) {
+                dir = dx;
+            }
+            else {
+                dir = dy;
+            }
+
+            glm::vec3 rot(0.0f);
+            switch (rotation_mode) {
+                case X:
+                    rot.x = dir;
+                    break;
+                case Y:
+                    rot.y = dir;
+                    break;
+                case Z:
+                    rot.z = dir;
+            }
             model_transform = glm::rotate(model_transform, glm::radians(ROTATION_SPEED), glm::normalize(rot));
             dx = 0;
             dy = 0;
@@ -284,7 +322,6 @@ int main()
         begin = high_resolution_clock::now();
     }
 
-    glDeleteTextures(1, &texture);
     glDeleteBuffers(1, &ebo);
     glDeleteBuffers(2, vbo);
     glDeleteVertexArrays(1, &vao);

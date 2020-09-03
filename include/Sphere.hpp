@@ -3,8 +3,7 @@
 #include <iostream>
 #include <vector>
 
-// For GLuint
-#include <GL/gl.h>
+#include <glad/glad.h>
 #include <glm/glm.hpp>
 
 #include "Constants.hpp"
@@ -20,6 +19,10 @@ static const uint64_t SPHERE_MINIMUM_SECTOR_COUNT = 3;
 class Sphere
 {
 private:
+    /* INTERNAL STATE*/
+    bool initialized = false;
+
+    /* COORDINATES */
     glm::vec3 center;
     float radius;
     uint64_t stack_count;
@@ -33,7 +36,18 @@ private:
     // of the actual texture used (assuming 2D)
     std::vector<float> texcoords;
 
+    /* OPENGL */
+    // Assume the following:
+    // An OpenGL context is set up
+    // A shader program is loaded
+    // A texture is applied
+    // Only load the VAO, VBOs and EBO and call the glDrawElements function
+    GLuint vao;
+    GLuint vbo[2];
+    GLuint ebo;
+
     void generate();
+    void generate_gl();
 public:
     Sphere(glm::vec3 center, float radius, uint64_t stack_count, uint64_t sector_count);
     ~Sphere() = default;
@@ -50,5 +64,6 @@ public:
         return texcoords;
     }
 
+    void draw() const;
     void log_coords() const;
 };

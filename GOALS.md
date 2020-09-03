@@ -6,3 +6,4 @@
 [x] Minimum zoom level outside of the models inner facettes
 [x] Implement dynamic creation of sphere vertices with a Sphere class
 [x] Apply earth texture to sphere
+[ ] Add a star sky wallpaper by implementing a generic draw function for Sphere

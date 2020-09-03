@@ -11,19 +11,21 @@
 
 #include "Constants.hpp"
 
+static const int LOAD_SHADER_SUCCESS = 0;
+static const int LOAD_SHADER_FAILURE = 1;
+
 class Shader
 {
 private:
-    GLuint id = 0;
-
+    GLenum type = 0;
+    GLuint shader = 0;
 public:
-    Shader() = default;
+    Shader(GLenum type);
     ~Shader();
 
     inline GLuint get_id() {
-        return id;
+        return shader;
     }
 
-    /* Returns 0 on success, otherwise 1 */
-    int load_shader(GLenum type, std::string file_path);
+    int load_shader(std::string file_path);
 };
