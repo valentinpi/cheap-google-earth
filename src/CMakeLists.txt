@@ -7,9 +7,11 @@ endif(MINGW)
 
 file(GLOB src
     "*.cpp"
-    "../lib/*"
+    "../dep/lib/*"
 )
 
 add_executable(cheap-google-earth ${src})
 target_include_directories(cheap-google-earth PRIVATE "../include")
+# Ignore warnings from these headers with a SYSTEM header declaration
+target_include_directories(cheap-google-earth SYSTEM PRIVATE "../dep/include")
 target_link_libraries(cheap-google-earth "-lglfw3 -lopengl32")

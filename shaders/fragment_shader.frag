@@ -1,9 +1,12 @@
 #version 460 core
 
-in vec3 immediate_color;
+in vec2 immediate_texcoord;
+
 out vec4 color;
+
+uniform sampler2D sampler_2d;
 
 void main()
 {
-    color = vec4(immediate_color, 1.0);
+    color = texture(sampler_2d, immediate_texcoord);
 }

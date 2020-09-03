@@ -12,3 +12,46 @@ glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 --
 static const double PI = 3.14159265358979323846264338327950288;
 --
+// Load texture
+int width = 0, height = 0;
+stbi_uc *earth_image_ptr = stbi_load(EARTH_TEXTURE_SRC.c_str(), &width, &height, nullptr, STBI_rgb);
+if (earth_image_ptr == NULL) {
+    std::cerr << "Could not load " << EARTH_TEXTURE_SRC << std::endl;
+    return EXIT_FAILURE;
+}
+std::unique_ptr<stbi_uc, void(*)(stbi_uc*)> earth_image(earth_image_ptr, [](stbi_uc *data) {
+    stbi_image_free(data);
+});
+glTexImage2D(texture, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, earth_image.get());
+--
+# To suppress warnings from GCC for instance
+#target_precompile_headers(cheap-google-earth PRIVATE "../dep/include/stb_image.h")
+# Did not work and requires very recent CMake
+--
+// TEST: Render triangle
+// This data, after being processed by the vertex shader, will be in NDC (normalized device coordinates)
+// Right now, we will use NDC at start
+//float vertices[] = {
+////  Points            Texture coordinates
+//    -0.5,  0.5,  0.0,  0.0,  0.0,
+//     0.5,  0.5,  0.0,  1.0,  0.0,
+//     0.5, -0.5,  0.0,  1.0,  1.0,
+//    -0.5, -0.5,  0.0,  0.0,  1.0,
+//};
+//float vertices[] = {
+////  Points            Texture coordinates
+//    -0.5, -0.5,  0.0,  0.0,  1.0,
+//     0.0,  0.5,  0.0,  0.5,  0.0,
+//     0.5, -0.5,  0.0,  1.0,  1.0,
+//};
+//GLuint indices[] = {
+//    0, 1, 2, 2, 3, 0
+//};
+-- Greenish clear color
+#define CLEAR_COLOR 0.2f, 0.3f, 0.3f, 1.0f
+--
+if (glGetError() != GL_NO_ERROR) {
+    std::cout << "glVertexAttribPointer fails!" << std::endl;
+    return EXIT_FAILURE;
+}
+--

@@ -9,6 +9,8 @@
 
 #include <glad/glad.h>
 
+#include "Constants.hpp"
+
 class Shader
 {
 private:
