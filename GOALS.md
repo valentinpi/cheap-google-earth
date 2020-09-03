@@ -7,3 +7,4 @@
 [x] Implement dynamic creation of sphere vertices with a Sphere class
 [x] Apply earth texture to sphere
 [x] Add a star sky wallpaper by implementing a generic draw function for Sphere
+[ ] Fix Sphere glitch
