@@ -1,28 +1,26 @@
 #include "Shader.hpp"
 
+Shader::Shader(GLenum type) : type(type) {}
+
 Shader::~Shader()
 {
-    glDeleteShader(id);
+    glDeleteShader(shader);
 }
 
-int Shader::load_shader(GLenum type, std::string file_path)
+int Shader::load_shader(std::string file_path)
 {
+    shader = glCreateShader(type);
+
     std::ifstream file(file_path);
     if (!file) {
         std::cerr << "Could not open " << file_path << "!" << std::endl;
-        return 1;
+        return LOAD_SHADER_FAILURE;
     }
 
     // Use read buffer to read entire file into stringstream
     std::stringstream src;
     src << file.rdbuf();
     file.close();
-    
-    GLuint shader = glCreateShader(type);
-    if (shader == 0) {
-        std::cerr << "Shader creation failed!" << std::endl;
-        return 1;
-    }
 
     std::string shader_src = src.str();
     const char *shader_src_ptr = shader_src.c_str();
@@ -42,9 +40,8 @@ int Shader::load_shader(GLenum type, std::string file_path)
         
         std::cerr << "Compilation of " << file_path << " failed!\n" << log.get() << std::endl;
 
-        return 1;
+        return LOAD_SHADER_FAILURE;
     }
 
-    id = shader;
-    return 0;
+    return LOAD_SHADER_SUCCESS;
 }
