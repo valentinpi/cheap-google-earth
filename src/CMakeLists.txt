@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.15)
 project(cheap-google-earth)
 
 if(MINGW)
-    set(CMAKE_CXX_FLAGS "-g -O0 -Wall -Wextra")
+    #set(CMAKE_CXX_FLAGS "-g -O0 -pedantic -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS "-O2 -pedantic -Wall -Wextra")
 endif(MINGW)
 
 file(GLOB src
