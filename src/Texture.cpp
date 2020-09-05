@@ -15,6 +15,7 @@ int Texture::load_texture(std::string path)
     use();
 
     int width = 0, height = 0;
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     stbi_uc *earth_image = stbi_load(path.c_str(), &width, &height, 0, STBI_rgb);
     if (earth_image == NULL) {
         std::cerr << "Could not load " << path << std::endl;
