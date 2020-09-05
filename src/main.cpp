@@ -155,7 +155,11 @@ int main()
     glGenVertexArrays(2, vao);
 
     glBindVertexArray(vao[0]);
+#if DEBUG
+    Sphere earth(glm::vec3(0.0f), EARTH_RADIUS, 3, 3);
+#else
     Sphere earth(glm::vec3(0.0f), EARTH_RADIUS, 20, 20);
+#endif
 
     glBindVertexArray(vao[1]);
     Sphere space(glm::vec3(0.0f), SPACE_RADIUS, 20, 20);
@@ -314,10 +318,18 @@ int main()
             glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             glClear(GL_DEPTH_BUFFER_BIT);
 
+#if DEBUG
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#endif
+
             glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(model_earth_transform));
             earth_texture.use();
             glBindVertexArray(vao[0]);
             earth.draw();
+            
+#if DEBUG
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#endif
 
             glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(model_space_transform));
             space_texture.use();
